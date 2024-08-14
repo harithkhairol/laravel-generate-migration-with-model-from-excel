@@ -5,6 +5,8 @@ namespace Harithkhairol\ExcelMigration\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class GenerateMigrationFromExcel extends Command
 {
@@ -53,6 +55,7 @@ class GenerateMigrationFromExcel extends Command
             $isIndexed = trim(strtolower($sheet->getCell("N{$row}")->getValue())) === 'yes';
             $isPolymorphic = trim(strtolower($sheet->getCell("O{$row}")->getValue())) === 'yes';
             $morphCustomIndex = trim($sheet->getCell("P{$row}")->getValue());
+            $generateController = trim(strtolower($sheet->getCell("Q{$row}")->getValue())) === 'yes';
 
             if (!isset($tableData[$table])) {
                 $tableData[$table] = [
@@ -61,7 +64,8 @@ class GenerateMigrationFromExcel extends Command
                     'polymorphic' => [],
                     'fillable' => [],
                     'relationships' => [],
-                    'indexes' => []
+                    'indexes' => [],
+                    'generateController' => $generateController
                 ];
             }
 
@@ -273,6 +277,25 @@ PHP;
             file_put_contents($modelFile, $modelContent);
             $this->info("Model created at: {$modelFile}");
         }
+
+        // generate Controller Excel Files
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $row = 2;
+        foreach ($tableData as $tableName => $data) {
+            $modelName = Str::studly(Str::singular($tableName));
+            $sheet->setCellValue("A{$row}", $modelName);
+            $sheet->setCellValue("B{$row}", '');
+            $row++;
+        }
+
+        // Save the Excel file
+        $excelPath = storage_path('spreadsheets/controller_generator.xlsx');
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($excelPath);
+
+        $this->info("Excel file created at: {$excelPath}");
 
         return 0;
     }    
