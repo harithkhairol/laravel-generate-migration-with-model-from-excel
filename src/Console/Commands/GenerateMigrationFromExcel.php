@@ -282,6 +282,9 @@ PHP;
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
+        $sheet->setCellValue("A{$row}", "Model");
+        $sheet->setCellValue("B{$row}", 'GenerateController (Yes/No)');
+
         $row = 2;
         foreach ($tableData as $tableName => $data) {
             $modelName = Str::studly(Str::singular($tableName));
