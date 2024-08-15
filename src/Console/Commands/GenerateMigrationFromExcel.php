@@ -282,8 +282,8 @@ PHP;
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        $sheet->setCellValue("A{$row}", "Model");
-        $sheet->setCellValue("B{$row}", 'GenerateController (Yes/No)');
+        $sheet->setCellValue("A1", "Model");
+        $sheet->setCellValue("B1", 'GenerateController (Yes/No)');
 
         $row = 2;
         foreach ($tableData as $tableName => $data) {
