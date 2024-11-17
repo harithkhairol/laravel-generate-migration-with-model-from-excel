@@ -56,6 +56,7 @@ class GenerateMigrationFromExcel extends Command
             $isPolymorphic = trim(strtolower($sheet->getCell("O{$row}")->getValue())) === 'yes';
             $morphCustomIndex = trim($sheet->getCell("P{$row}")->getValue());
             $generateController = trim(strtolower($sheet->getCell("Q{$row}")->getValue())) === 'yes';
+            $isUUID = trim(strtolower($sheet->getCell("R{$row}")->getValue())) === 'yes'; // Assuming 'R' column is for UUID.
 
             if (!isset($tableData[$table])) {
                 $tableData[$table] = [
@@ -79,7 +80,7 @@ class GenerateMigrationFromExcel extends Command
                     'column' => $foreignKeyColumn
                 ];
 
-                if($inverseRelationshipHasMany){
+                if ($inverseRelationshipHasMany) {
 
                     // Inverse relationship
                     if (!isset($inverseRelationships[$onTable])) {
@@ -92,8 +93,6 @@ class GenerateMigrationFromExcel extends Command
                         'column' => $foreignKeyColumn
                     ];
                 }
-
-                
             }
 
             if ($isPolymorphic) {
@@ -106,6 +105,10 @@ class GenerateMigrationFromExcel extends Command
 
             if ($isIndexed) {
                 $tableData[$table]['indexes'][] = $column;
+            }
+
+            if ($isUUID) {
+                $tableData[$table]['isUUID'] = true; // Track UUID requirement
             }
         }
 
@@ -138,12 +141,16 @@ return new class extends Migration
             \$table->id();
 PHP;
 
+            if (!empty($data['isUUID'])) {
+                $migrationContent .= "\n            \$table->uuid('uuid')->unique();";
+            }
+
             foreach ($data['columns'] as $col) {
                 $columnString = "\$table->{$col['type']}('{$col['column']}'";
 
                 if (!empty($col['scale'])) {
                     $columnString .= ", {$col['scale']}";
-                } else if(!empty($col['morphCustomIndex'])){
+                } else if (!empty($col['morphCustomIndex'])) {
                     $columnString .= ", '{$col['morphCustomIndex']}'";
                 }
 
@@ -256,6 +263,25 @@ PHP;
                 }
             }
 
+            // In the model creation loop, add a boot method for UUID if required
+            if (!empty($data['isUUID'])) {
+                $relationshipsContent .= <<<PHP
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function (\$model) {
+            if (empty(\$model->uuid)) {
+                \$model->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
+
+PHP;
+            }
+
+
             $modelContent = <<<PHP
 <?php
 
@@ -301,7 +327,5 @@ PHP;
         $this->info("Excel file created at: {$excelPath}");
 
         return 0;
-    }    
+    }
 }
-
-
