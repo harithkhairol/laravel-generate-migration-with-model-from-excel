@@ -55,8 +55,7 @@ class GenerateMigrationFromExcel extends Command
             $isIndexed = trim(strtolower($sheet->getCell("N{$row}")->getValue())) === 'yes';
             $isPolymorphic = trim(strtolower($sheet->getCell("O{$row}")->getValue())) === 'yes';
             $morphCustomIndex = trim($sheet->getCell("P{$row}")->getValue());
-            $generateController = trim(strtolower($sheet->getCell("Q{$row}")->getValue())) === 'yes';
-            $isUUID = trim(strtolower($sheet->getCell("R{$row}")->getValue())) === 'yes'; // Assuming 'R' column is for UUID.
+            $isUUID = trim(strtolower($sheet->getCell("Q{$row}")->getValue())) === 'yes'; 
 
             if (!isset($tableData[$table])) {
                 $tableData[$table] = [
@@ -65,8 +64,7 @@ class GenerateMigrationFromExcel extends Command
                     'polymorphic' => [],
                     'fillable' => [],
                     'relationships' => [],
-                    'indexes' => [],
-                    'generateController' => $generateController
+                    'indexes' => []
                 ];
             }
 
