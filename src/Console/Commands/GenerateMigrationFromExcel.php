@@ -139,10 +139,6 @@ return new class extends Migration
             \$table->id();
 PHP;
 
-            if (!empty($data['isUUID'])) {
-                $migrationContent .= "\n            \$table->uuid('uuid')->unique();";
-            }
-
             foreach ($data['columns'] as $col) {
                 $columnString = "\$table->{$col['type']}('{$col['column']}'";
 
