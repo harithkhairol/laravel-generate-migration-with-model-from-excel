@@ -318,7 +318,10 @@ PHP;
         $writer = new Xlsx($spreadsheet);
         $writer->save($excelPath);
 
-        $this->info("Excel file created at: {$excelPath}");
+        // // this is for future enhancement
+        // $this->info("Excel file created at: {$excelPath}");
+
+        $this->info("Migration-from-excel generate successfully!");
 
         return 0;
     }
