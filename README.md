@@ -41,7 +41,7 @@ How to use:
 
            It will be generate inside the same migration files with the previous column for the table homestay .
 
-        iv) There is multiple column next to the 3 main column that can customized your column for further needs.
+        iv) There are multiple column next to the 3 main column that can customized your column for further needs.
 
    
 3) Run command to generate migration files in the spreadsheets: php artisan make:migration-from-excel
