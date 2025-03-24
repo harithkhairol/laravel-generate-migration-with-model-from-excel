@@ -4,6 +4,7 @@ namespace Harithkhairol\ExcelMigration;
 
 use Illuminate\Support\ServiceProvider;
 use Harithkhairol\ExcelMigration\Console\Commands\GenerateMigrationFromExcel;
+use Harithkhairol\ExcelMigration\Console\Commands\GenerateControllerFromExcel;
 
 class ExcelMigrationServiceProvider extends ServiceProvider
 {
@@ -17,6 +18,7 @@ class ExcelMigrationServiceProvider extends ServiceProvider
     {
         $this->commands([
             GenerateMigrationFromExcel::class,
+            GenerateControllerFromExcel::class
         ]);
 
         // php artisan vendor:publish --tag=harithkhairol-spreadsheets

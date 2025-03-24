@@ -299,42 +299,6 @@ PHP;
             $this->info("Model created at: {$modelFile}");
         }
 
-        // generate form request
-        $formRequestName = $modelName . 'Request';
-        $formRequestPath = app_path("Http/Requests/{$formRequestName}.php");
-
-        $rules = $this->generateValidationRules($data['columns'], $tableName, $data['foreignKeys']);
-        $ruleLines = '';
-
-        foreach ($rules as $field => $rule) {
-            $ruleLines .= "            '{$field}' => '{$rule}',\n";
-        }
-
-
-        $formRequestContent = <<<PHP
-        <?php
-
-        namespace App\Http\Requests;
-
-        use Illuminate\Foundation\Http\FormRequest;
-
-        class {$formRequestName} extends FormRequest
-        {
-            public function authorize(): bool
-            {
-                return true;
-            }
-
-            public function rules(): array
-            {
-                return [
-        {$ruleLines}        ];
-            }
-        }
-        PHP;
-
-        file_put_contents($formRequestPath, $formRequestContent);
-        $this->info("FormRequest created at: {$formRequestPath}");
 
         // generate Controller Excel Files
         $spreadsheet = new Spreadsheet();
@@ -343,6 +307,9 @@ PHP;
         $sheet->setCellValue("A1", "Model");
         $sheet->setCellValue("B1", 'GenerateController (Y/N)');
         $sheet->setCellValue("C1", "FormRequest (Y/N)");
+        $sheet->setCellValue("D1", "Namespace (Optional)");
+        $sheet->setCellValue("E1", "Route Prefix (Optional)");
+        $sheet->setCellValue("F1", "API Mode (Y/N)");
 
         $row = 2;
         foreach ($tableData as $tableName => $data) {
@@ -350,6 +317,9 @@ PHP;
                 $sheet->setCellValue("A{$row}", $modelName);
                 $sheet->setCellValue("B{$row}", '');
                 $sheet->setCellValue("C{$row}", '');
+                $sheet->setCellValue("D{$row}", '');
+                $sheet->setCellValue("E{$row}", '');
+                $sheet->setCellValue("F{$row}", '');
                 $row++;
         }
 
@@ -366,62 +336,4 @@ PHP;
         return 0;
     }
 
-    private function generateValidationRules(array $columns, string $tableName, array $foreignKeys = []): array
-    {
-
-        $rules = [];
-
-        foreach ($columns as $col) {
-            $field = $col['column'];
-            $fieldRules = [];
-        
-            if (!$col['isNullable']) {
-                $fieldRules[] = 'required';
-            } else {
-                $fieldRules[] = 'nullable';
-            }
-        
-            switch ($col['type']) {
-                case 'string':
-                    $fieldRules[] = 'string';
-                    break;
-                case 'integer':
-                case 'bigInteger':
-                case 'smallInteger':
-                    $fieldRules[] = 'integer';
-                    break;
-                case 'boolean':
-                    $fieldRules[] = 'boolean';
-                    break;
-                case 'date':
-                    $fieldRules[] = 'date';
-                    break;
-                case 'json':
-                    $fieldRules[] = 'json';
-                    break;
-            }
-        
-            // Unique rule
-            if (!empty($col['isUnique'])) {
-                $fieldRules[] = "unique:{$tableName},{$field}";
-            }
-        
-            // File rule
-            if (!empty($col['isFile'])) {
-                $fieldRules[] = 'file';
-            }
-        
-            // Foreign key rule
-            foreach ($foreignKeys as $fk) {
-                if ($fk['foreignKeyColumn'] === $field && !empty($fk['onTable']) && !empty($fk['references'])) {
-                    $fieldRules[] = "exists:{$fk['onTable']},{$fk['references']}";
-                }
-            }
-        
-            $rules[$field] = implode('|', $fieldRules);
-        }     
-        
-        return $rules;
-
-    }
 }
