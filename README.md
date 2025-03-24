@@ -1,12 +1,12 @@
 How to setup:
 
-1) Put this inside require:
+1) Put this inside composer.json "require":
    
            "require": {
                 "harithkhairol/excel-migration": "dev-main"
             },
    
-2) Put this inside composer.json:
+2) Put this inside composer.json "repositories":
 
         "repositories": [
                 {
