@@ -120,8 +120,15 @@ PHP;
         $storeClass = "Store{$model}Request";
         $updateClass = "Update{$model}Request";
 
-        // Inject `use` statements only if missing
-        foreach (["App\\Http\\Requests\\{$storeClass}", "App\\Http\\Requests\\{$updateClass}"] as $useStatement) {
+        $modelClass = "App\\Models\\{$model}";
+        $modelVariable = Str::camel($model); // e.g., Booking => $booking
+
+        // Inject `use` statements if missing
+        foreach ([
+            "App\\Http\\Requests\\{$storeClass}",
+            "App\\Http\\Requests\\{$updateClass}",
+            $modelClass
+        ] as $useStatement) {
             if (!Str::contains($content, "use {$useStatement};")) {
                 $content = preg_replace(
                     '/namespace\s+[^;]+;/',
@@ -129,7 +136,6 @@ PHP;
                     $content,
                     1
                 );
-                
             }
         }
 
@@ -137,27 +143,29 @@ PHP;
         $content = preg_replace(
             '/public function store\([^\)]*\)\s*\{[^}]*\}/s',
             <<<PHP
-    public function store({$storeClass} \$request)
-        {
-            \$validated = \$request->validated();
-            // TODO: Store logic here
-        }
-    PHP,
+        public function store({$storeClass} \$request)
+            {
+                \$validated = \$request->validated();
+                // TODO: Store logic here
+            }
+        PHP,
             $content
         );
+        
 
         // Replace update() method
         $content = preg_replace(
             '/public function update\([^\)]*\)\s*\{[^}]*\}/s',
             <<<PHP
-    public function update({$updateClass} \$request, \\App\\Models\\{$model} \${$model})
-        {
-            \$validated = \$request->validated();
-            // TODO: Update logic here
-        }
-    PHP,
+        public function update({$updateClass} \$request, {$model} \${$modelVariable})
+            {
+                \$validated = \$request->validated();
+                // TODO: Update logic here
+            }
+        PHP,
             $content
         );
+        
 
         File::put($controllerFilePath, $content);
 
