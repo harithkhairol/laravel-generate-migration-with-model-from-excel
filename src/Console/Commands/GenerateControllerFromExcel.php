@@ -40,11 +40,11 @@ class GenerateControllerFromExcel extends Command
                 continue;
             }
 
-            $controllerPath = $namespace ? "{$namespace}\\{$model}Controller" : "{$model}Controller";
+            $controllerPath = $namespace ? "{$namespace}/{$model}Controller" : "{$model}Controller";
 
             // 1. Generate the resource controller
             Artisan::call('make:controller', [
-                'name' => $controllerPath,
+                'name' => str_replace('\\', '/', $controllerPath), // Convert namespace to folder path
                 '--model' => $model,
                 '--resource' => true,
                 '--api' => $isApi,
@@ -108,60 +108,85 @@ PHP;
 
     private function injectRequestsIntoController(string $controllerPath, string $model)
     {
-        $path = app_path("Http/Controllers/" . str_replace('\\', '/', $controllerPath) . ".php");
+        $controllerFilePath = app_path("Http/Controllers/" . str_replace('\\', '/', $controllerPath) . ".php");
 
-        if (!File::exists($path)) {
+        if (!File::exists($controllerFilePath)) {
             $this->error("Controller not found: {$controllerPath}");
             return;
         }
 
-        $content = File::get($path);
-        $storeMethod = <<<PHP
+        $content = File::get($controllerFilePath);
 
-    public function store(\\App\\Http\\Requests\\Store{$model}Request \$request)
-    {
-        \$validated = \$request->validated();
-        // TODO: Store logic here
-    }
-PHP;
+        $storeClass = "Store{$model}Request";
+        $updateClass = "Update{$model}Request";
 
-        $updateMethod = <<<PHP
-
-    public function update(\\App\\Http\\Requests\\Update{$model}Request \$request, \\App\\Models\\{$model} \${$model})
-    {
-        \$validated = \$request->validated();
-        // TODO: Update logic here
-    }
-PHP;
-
-        // Append if not already there
-        if (!Str::contains($content, 'function store(')) {
-            $content = str_replace('public function index(', $storeMethod . "\n\n    public function index(", $content);
+        // Inject `use` statements only if missing
+        foreach (["App\\Http\\Requests\\{$storeClass}", "App\\Http\\Requests\\{$updateClass}"] as $useStatement) {
+            if (!Str::contains($content, "use {$useStatement};")) {
+                $content = preg_replace(
+                    '/namespace\s+[^;]+;/',
+                    "$0\n\nuse {$useStatement};",
+                    $content,
+                    1
+                );
+                
+            }
         }
 
-        if (!Str::contains($content, 'function update(')) {
-            $content = str_replace('public function destroy(', $updateMethod . "\n\n    public function destroy(", $content);
+        // Replace store() method
+        $content = preg_replace(
+            '/public function store\([^\)]*\)\s*\{[^}]*\}/s',
+            <<<PHP
+    public function store({$storeClass} \$request)
+        {
+            \$validated = \$request->validated();
+            // TODO: Store logic here
         }
+    PHP,
+            $content
+        );
 
-        File::put($path, $content);
-        $this->info("Injected store/update requests into: {$controllerPath}");
-        // 
+        // Replace update() method
+        $content = preg_replace(
+            '/public function update\([^\)]*\)\s*\{[^}]*\}/s',
+            <<<PHP
+    public function update({$updateClass} \$request, \\App\\Models\\{$model} \${$model})
+        {
+            \$validated = \$request->validated();
+            // TODO: Update logic here
+        }
+    PHP,
+            $content
+        );
+
+        File::put($controllerFilePath, $content);
+
+        $this->info("Injected FormRequests into: {$controllerPath}");
     }
+
 
     private function registerResourceRoute(string $model, string $controllerPath, ?string $prefix = null, bool $isApi = false)
     {
         $routeFile = $isApi ? base_path('routes/api.php') : base_path('routes/web.php');
         $controllerClass = "App\\Http\\Controllers\\" . str_replace('/', '\\', $controllerPath);
+        $shortController = class_basename($controllerClass);
         $uri = $prefix ?: Str::kebab(Str::plural($model));
-        $routeNamePrefix = $prefix
-            ? str_replace('/', '.', trim($prefix, '/'))
-            : Str::kebab(Str::plural($model));
+        $routeNamePrefix = str_replace('/', '.', trim($prefix ?: $uri, '/'));
 
-        $routeLine = "Route::resource('{$uri}', {$controllerClass}::class)->names('{$routeNamePrefix}');";
+        $routeLine = "Route::resource('{$uri}', {$shortController}::class)->names('{$routeNamePrefix}');";
 
-        if (!Str::contains(file_get_contents($routeFile), $routeLine)) {
-            file_put_contents($routeFile, "\n{$routeLine}\n", FILE_APPEND);
-            $this->info("Route added: {$routeLine}");
+        $existingContent = file_get_contents($routeFile);
+
+        // Add use statement if not already there
+        if (!Str::contains($existingContent, "use {$controllerClass};")) {
+            $existingContent = "<?php\n\nuse {$controllerClass};\n" . ltrim($existingContent, "<?php\n");
+        }
+
+        // Add route if not already there
+        if (!Str::contains($existingContent, $routeLine)) {
+            $existingContent .= "\n{$routeLine}\n";
+            file_put_contents($routeFile, $existingContent);
+            $this->info("Route + use added: {$routeLine}");
         } else {
             $this->info("Route already exists: {$routeLine}");
         }
