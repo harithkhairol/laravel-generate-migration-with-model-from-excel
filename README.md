@@ -44,7 +44,10 @@ How to use:
         iv) There are multiple column next to the 3 main column that can customized your column for further needs.
 
    
-3) Run command to generate migration files in the spreadsheets: php artisan make:migration-from-excel
+3) Run command to generate migration files in the spreadsheets: php artisan make:migration-from-excel. This command will also generated controller_generator.xlsx file.
+4) Inside controller_generator.xlsx have multiple column next to Model: GenerateController, FormRequest,	Namespace,	Route Prefix, and	API Mode. You can adjust it according to your liking.
+5) Then run: php artisan make:controller-from-excel to generate controller.
+
         
 
                 
